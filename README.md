@@ -122,8 +122,6 @@ You can either do this manually or let Terraform handle it.
     Save the following content as `app-deploy.yaml` on your Management VM, then apply it.
 
     ```yaml
-    # Save this entire block as app-deploy.yaml
-    # Redis Deployment
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -140,40 +138,34 @@ You can either do this manually or let Terraform handle it.
         spec:
           containers:
           - name: redis
-            image: redis:7 # Using Redis 7 image
+            image: redis:7
             ports:
-            - containerPort: 6379 # Redis default port
+            - containerPort: 6379
     ---
-    # Redis Service
-    # This service makes Redis discoverable by the Python app within the cluster.
     apiVersion: v1
     kind: Service
     metadata:
-      name: redis # This name "redis" is used as REDIS_HOST in the ConfigMap
+      name: redis
     spec:
       selector:
         app: redis
       ports:
         - protocol: TCP
-          port: 6379 # Service port
-          targetPort: 6379 # Target port on the Redis container
+          port: 6379
+          targetPort: 6379
     ---
-    # Python App ConfigMap
-    # Defines environment variables for the Python application, including Redis connection details.
     apiVersion: v1
     kind: ConfigMap
     metadata:
       name: python-app-config
     data:
-      REDIS_HOST: "redis" # Points to the Redis service name within the cluster
+      REDIS_HOST: "redis"
       REDIS_PORT: "6379"
       REDIS_DB: "0"
       ENVIRONMENT: "production"
       HOST: "0.0.0.0"
       PORT: "8080"
     ---
-    # Python App Deployment
-    # Deploys the Python application, connecting it to the ConfigMap for environment variables.
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -190,15 +182,13 @@ You can either do this manually or let Terraform handle it.
         spec:
           containers:
           - name: python-app
-            image: us-east1-docker.pkg.dev/iti-gcp-course/iti/project:latest # Your application image
+            image: us-east1-docker.pkg.dev/iti-gcp-course/iti/project:latest
             ports:
-            - containerPort: 8080 # Port your Python app listens on
+            - containerPort: 8080
             envFrom:
             - configMapRef:
-                name: python-app-config # Links to the ConfigMap above
+                name: python-app-config
     ---
-    # Python App Service
-    # Exposes the Python application within the cluster and makes it accessible via the external Load Balancer.
     apiVersion: v1
     kind: Service
     metadata:
@@ -208,9 +198,9 @@ You can either do this manually or let Terraform handle it.
         app: python-app
       ports:
         - protocol: TCP
-          port: 80 # Service port (what the external Load Balancer will connect to)
-          targetPort: 8080 # Target port on the Python app container
-      type: NodePort # IMPORTANT: Set to NodePort for integration with the external HTTP Load Balancer
+          port: 80
+          targetPort: 8080
+      type: LoadBalancer
     ```
 
     Then apply it:
